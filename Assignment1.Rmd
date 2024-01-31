@@ -1,0 +1,96 @@
+---
+title: "Assignment 1"
+author: "Chhiring Lama"
+date: "2024-01-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load libraries
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+## Import data file as CSV
+
+```{r}
+my_data <- suppressWarnings(read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/drug-use-by-age/drug-use-by-age.csv", header = TRUE))
+```
+
+Disply Overview of Dataframe
+ 
+```{r}
+glimpse(my_data)
+```
+Extract a subset from the Data-frame with certain columns. 
+
+```{r}
+my_data1 <- subset(my_data, select = c(age, n, alcohol_use,marijuana_use))
+as.data.frame(my_data1)
+```
+Extract only the row with age group of 50-54 that is baby boomers generation.
+
+```{r}
+boomers_50_64 <- my_data1 %>%
+  filter(age == "50-64")
+  
+```
+
+Filter all rows which are below 21 and assign them in boomers_50_64 variable.
+
+```{r}
+underAgeDrugUse <- my_data1 %>% 
+    filter(age <= 21) 
+underAgeDrugUse
+```
+
+Display baby boomers row.
+
+```{r}
+boomers_50_64
+
+```
+Compare two age groups those who use alcohol and marijuana.
+
+```{r}
+drug_comparison <- data.frame(
+  age_group = c("Below 21", "50-64"),
+  alcohol_use = c(mean(my_data1$alcohol_use[my_data1$age < 21], na.rm = TRUE), my_data1$alcohol_use[my_data1$age == "50-64"]),
+  marijuana_use = c(mean(my_data1$marijuana_use[my_data1$age < 21], na.rm = TRUE), my_data1$marijuana_use[my_data1$age == "50-64"])
+  
+)
+```
+
+```{r}
+drug_comparison
+```
+Bar Plot for alcohol use
+
+```{r}
+ggplot(drug_comparison, aes(x = age_group, y = alcohol_use, fill = age_group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Comparison of Alcohol Use Between Age Groups",
+       x = "Age Group",
+       y = "Mean Alcohol Use") +
+  theme_minimal()
+
+```
+Bar plot for marijuana use.
+
+```{r}
+ggplot(drug_comparison, aes(x = age_group, y = marijuana_use, fill = age_group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Comparison of Marijuana Use Between Age Groups",
+       x = "Age Group",
+       y = "Mean Marijuana Use") +
+  theme_minimal()
+```
+
+In summary, comparing alcohol and marijuana use between individuals under 21 and the baby boomer generation (50-64 age group) reveals that, on average, those under 21 report higher marijuana use, while baby boomers report higher alcohol use. These findings emphasize the need for age-specific insights in shaping interventions and policies. Considering the limitations of mean values, further analysis may require for a comprehensive understanding of drug use patterns across age groups. Additionally, exploring the correlation between baby boomers and alcohol use may be a subject for future study.
