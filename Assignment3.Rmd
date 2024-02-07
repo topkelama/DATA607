@@ -1,0 +1,84 @@
+---
+title: "Assignment3"
+author: "Chhiring Lama"
+date: "2024-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+
+
+```{r echo=FALSE}
+library(tidyverse)
+library(dplyr)
+```
+
+## 
+
+```{r echo=TRUE}
+college_major <- read.csv('https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/majors-list.csv')
+```
+
+# 1. Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset [https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/], provide code that identifies the majors that contain either "DATA" or "STATISTICS"
+
+```{r}
+glimpse(college_major)
+```
+```{r}
+grep(pattern = "DATA|STATISTICS", college_major$Major, value = TRUE, ignore.case = TRUE)
+```
+# 2 Write code that transforms the data below:
+[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange"
+[5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+[9] "elderberry"   "lime"         "lychee"       "mulberry"    
+[13] "olive"        "salal berry"
+Into a format like this:
+c("bell pepper", "bilberry", "blackberry", "blood orange", "blueberry", "cantaloupe", "chili pepper", "cloudberry", "elderberry", "lime", "lychee", "mulberry", "olive", "salal berry")
+
+```{r}
+fruits_basket <- c("bell pepper", "bilberry", "blackberry", "blood orange",
+"blueberry", "cantaloupe", "chili pepper", "cloudberry", 
+"elderberry", "lime", "lychee", "mulberry",    
+"olive", "salal berry")
+fruits_basket
+```
+```{r}
+transformed_data <- cat(paste0("c(",paste0(sep = '"',fruits_basket, collapse = ', ', sep='"'),paste(")")))
+#invisible(cat(transformed_data))
+```
+# 3 Describe, in words, what these expressions will match:
+(.)\1\1
+"(.)(.)\\2\\1"
+(..)\1
+"(.).\\1.\\1"
+"(.)(.)(.).*\\3\\2\\1"
+
+Answers:- 
+(.)\1\1 This expression matches any single character followed by the same character repeated twice.
+
+"(.)(.)\\2\\1" It matches any two-character string where the characters are the same in both positions, but in reverse order.
+
+(..)\1 It matches any four-character string where the first two characters are identical to the last two characters.
+
+"(.).\\1.\\1" Any character in first capturing group, then it can be any character, next it will backreference to first capturing group, again any character, lastly, it will repeat first capturing group. example:- azaxa
+
+"(.)(.)(.).*\\3\\2\\1" It matches any three characters in a row, then any character repeated zero or more times. Next, it will match three capturing groups in reverse order. 
+
+# 4 Construct regular expressions to match words that:
+Start and end with the same character.
+Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.)
+Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.)
+
+Answers:- 
+^(.).*\1$ Starts with any one character following any character zero or more occurrences then finally ends with back-reference to first capturing group.
+(\w)\1.*\1\1
+
+([A-Za-z][A-Za-z]).*\\1 It matches any two letters ignoring case, followed by any character with zero or more occurrences and finally it matches the back-reference to first capturing group.
+
+([a-z]).*\\1.*\\1 This regex matches starting with single letter followed by zero or more occurrences of any character. Next, repeated the letter from first capturing group followed by zero or more occurrences of any character. Lastly, again matches with the first capturing group that is any one single letter. 
+
+
