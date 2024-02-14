@@ -44,11 +44,15 @@ fruits_basket <- c("bell pepper", "bilberry", "blackberry", "blood orange",
 "blueberry", "cantaloupe", "chili pepper", "cloudberry", 
 "elderberry", "lime", "lychee", "mulberry",    
 "olive", "salal berry")
-fruits_basket
 ```
+
 ```{r}
-transformed_data <- cat(paste0("c(",paste0(sep = '"',fruits_basket, collapse = ', ', sep='"'),paste(")")))
-#invisible(cat(transformed_data))
+# Define a regex pattern that matches words containing only letters and spaces
+pattern <- "\\b[a-zA-Z]+(\\s[a-zA-Z]+)*\\b"
+fruits <- grep(pattern, fruits_basket, value = TRUE)
+
+# Print the extracted fruits
+print(fruits)
 ```
 # 3 Describe, in words, what these expressions will match:
 (.)\1\1
@@ -79,6 +83,6 @@ Answers:-
 
 ([A-Za-z][A-Za-z]).*\\1 It matches any two letters ignoring case, followed by any character with zero or more occurrences and finally it matches the back-reference to first capturing group.
 
-([a-z]).*\\1.*\\1 This regex matches starting with single letter followed by zero or more occurrences of any character. Next, repeated the letter from first capturing group followed by zero or more occurrences of any character. Lastly, again matches with the first capturing group that is any one single letter. 
+(.).*\\1.*\\1.* This regex matches starting with single letter followed by zero or more occurrences of any character. Next, repeated the letter from first capturing group followed by zero or more occurrences of any character. Lastly, again matches with the first capturing group that is any one single letter. 
 
 
