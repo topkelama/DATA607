@@ -1,0 +1,182 @@
+---
+title: "Project_1"
+author: "Chhiring Lama"
+date: "2024-02-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+passwd <- "lama65"
+```
+
+## Project 1
+
+# Introduction
+
+In this project, the primary focus was on wrangling chess tournament data using regular expressions. The initial step involved pulling the raw data from GitHub, where the data was stored. Following this, the data underwent a series of transformations to ensure it was in a usable format. Notable attention was paid to extracting and organizing crucial information, such as the pre-ratings of players and their respective opponents. This step was particularly important, as it laid the foundation for the subsequent analysis. As the project neared its conclusion, a final dataframe was created, which included essential columns such as Player.Name, Player.State, Total.Pts, Pre.Rating, and Avg_Opp_PreRating. The dataframe was streamlined to eliminate any unnecessary columns, ensuring it was concise and focused. To ensure accessibility and data preservation, the final dataframe was stored in two formats: a MySQL database table provided ease of access for future analysis, while a CSV file served as a backup.
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(DBI)
+library(RMySQL)
+```
+
+Read data from the github
+
+```{r, echo=TRUE}
+raw_data <- readLines("https://raw.githubusercontent.com/mandiemannz/data-607--Fall-18/master/project1txt", warn = F)
+#raw_data
+```
+
+Remove all boarders with dash lines
+
+```{r, echo=TRUE}
+#replace all dashes 
+player_data = str_replace_all(raw_data,"-","") 
+#player_data
+```
+
+Convert raw data into R frame and drop unnecessary columns
+
+```{r, echo=TRUE}
+#read.delim function is used to read dato into R and connection object is created to interface to string "player data"
+cleaned_data = read.delim(textConnection(player_data),header = F, sep = "|", stringsAsFactors = F)
+# There is nothing in the column 11 so decided to drop that column
+cleaned_data = cleaned_data[,-11]
+#cleaned_data
+```
+
+ Cleanup first two columns and concatenate rest characters to build up a header
+ 
+```{r, echo=TRUE}
+#remove all white spaces from row 1 and 2 and concatenate them in 1
+header <- make.names(str_sub(paste(trimws(as.character(cleaned_data[1,])), trimws(as.character(cleaned_data[2,]))), 1, 11))
+```
+
+ Header
+ 
+```{r, echo=TRUE}
+# Convert all rows excluding into tibble 
+cleaned_data <- as_tibble(cleaned_data[-c(1, 2), ])
+
+# Assign the head earlier made using make.names function.
+names(cleaned_data) <- header
+#cleaned_data
+```
+
+Each Player has covered 2 rows, extract State and player ID
+
+```{r, echo=TRUE}
+# Identify indices for players and state ranks
+player_id <- seq(1, nrow(cleaned_data), 2)
+state_rank_id <- seq(2, nrow(cleaned_data), 2)
+
+# Select rows for players and state ranks according to the plaeyer_id and state_rank vector earlier made
+players <- cleaned_data[player_id, ]
+state_ranks <- (select(cleaned_data[state_rank_id, ],State = Pair.Num, Pre.Rating = Player.Name))
+# Combine the dataframes
+combined_data <- cbind(players, state_ranks)
+
+# Convert the combined dataframe to a tibble
+players_tibble <- as_tibble(combined_data)
+
+# Print the first 5 rows of the tibble
+print(players_tibble[1:5, ])
+```
+Clean the value of pre.rating column to keep only the pre_rating value.
+
+```{r, echo=TRUE}
+players_tibble <- players_tibble %>%
+  mutate(Pre.Rating = str_replace(Pre.Rating, "[0-9]\\s+/R:\\s+|^[P].+|>.+", "")) %>%
+  mutate(Pre.Rating = as.integer(str_extract(Pre.Rating, "\\d+")))
+#players_tibble
+```
+
+Fix formats and types of the Total points, Pair.Num, and Player.Name columns
+
+```{r, echo=TRUE}
+
+players_tibble <- players_tibble %>%
+  mutate(Total.Pts = as.numeric(Total.Pts),
+         Pair.Num = as.character(Pair.Num),  # Ensure Pair.Num is treated as character
+         Pair.Num = parse_number(Pair.Num),
+         Player.Name = trimws(Player.Name))
+head(players_tibble)
+
+```
+
+Arrange Opponent Pair-Num to corresponding player
+
+```{r, echo=TRUE}
+# Gathering and mutating
+players_tibble <- players_tibble %>%
+    # The gather function will stalk all round column names as key and value of those columns gonna be the key
+  gather("Round","Oppo_PNum", 4:10) %>% # Round 1 to Round 7
+  mutate(Oppo_PNum = parse_number(Oppo_PNum)) 
+# create a new column for opponent pre rating
+playerRatings = select(players_tibble, Pair.Num,OppoP_Rating = Pre.Rating) %>% distinct()
+
+# Now join the opponent pre rating column to players_tibble dataframe.
+players_tibble = left_join(players_tibble, playerRatings, by = c("Oppo_PNum" = "Pair.Num"))
+# Print players_tibble after gathering and mutating
+head(players_tibble)
+```
+
+Find the Average of opponent Player's pre-rating
+
+```{r, echo=TRUE}
+players_tibble = players_tibble %>% 
+  group_by(Player.Name) %>% 
+  mutate(Avg_Opp_PreRating = round(mean(OppoP_Rating, na.rm=T)))
+
+final_df <- players_tibble %>% 
+  select(Player.Name, Player.State = State, Total.Pts, Pre.Rating, Avg_Opp_PreRating) %>% 
+  ungroup() %>% 
+  distinct()
+
+head(final_df)
+```
+
+Connect to MySQL Databse
+
+
+```{r, echo=TRUE}
+lamadb <- dbConnect(RMySQL::MySQL(), 
+                 user = "chhiring.lama65", 
+                 password = passwd, 
+                 dbname = "chhiring.lama65",
+                 host = "cunydata607sql.mysql.database.azure.com")
+```
+
+Due to limited privileges, I am unable to create the schema
+
+```{r, echo=TRUE}
+#sql_statement <- "CREATE SCHEMA IF NOT EXISTS chess_tournament" 
+
+```
+
+Create a table named "chess_tournament"
+
+```{r, echo=TRUE}
+dbWriteTable(lamadb, "chess_tournament", final_df, overwrite = TRUE)
+```
+
+List tables
+
+```{r, echo=TRUE}
+dbListTables(lamadb)
+```
+
+Disconnect from the Databse
+
+```{r, echo=TRUE}
+dbDisconnect(lamadb)
+```
+
+Create a csv file from this R dataframe
+
+```{r, echo=TRUE}
+write.csv(players_tibble, "C:\\Users\\Chhiring\\iCloudDrive\\CUNY_MS\\DATA607\\Project_1\\project1.csv", row.names = FALSE)
+```
+
