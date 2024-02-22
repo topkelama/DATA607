@@ -1,0 +1,107 @@
+---
+title: "Assignment5"
+author: "Chhiring Lama"
+date: "2024-02-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the required Library
+
+```{r echo=TRUE}
+library(tidyr)
+library(dplyr)
+```
+
+Read data from Github
+
+```{r, echo=TRUE}
+
+original_df <- read.csv("https://raw.githubusercontent.com/topkelama/DATA607/207dae685eaed5546a9aa9315b22d50b954efaca/airlines.csv", header = TRUE, na.strings = "")
+
+```
+
+overview of the dataframe
+
+```{r echo=TRUE}
+glimpse(original_df)
+```
+Rename 1st and 2nd columns as the existing names do not make sense. 
+
+```{r, echo=TRUE}
+#made some changes on columns names along with 1st and 2nd columns
+names(original_df) <- c("Airline", "Arrival_Status", "Los_Angeles", "Phoenix", "San_Diego", "San_Francisco", "Seattle")
+
+```
+dataframe before cleaning and tidying
+
+```{r, echo=TRUE}
+head(original_df)
+```
+Remove the row if all columns in a row has NA
+
+```{r, echo=TRUE}
+original_df <- original_df %>%
+    # this will keep if any column in a row has a NA otherwise remove
+  filter(rowSums(is.na(.)) != ncol(.))
+original_df
+```
+Change the dataframe to long format
+
+```{r, echo=TRUE}
+long_df <- original_df %>%
+  pivot_longer(
+    cols = -c(Airline, Arrival_Status),
+    names_to = "Destination",
+    values_to = "Flight_Count"
+  )
+#long_df
+```
+Fill NA value with respective Airline values
+
+```{r ,echo=TRUE}
+long_df <- long_df %>% mutate(Airline = as.character(na_if(Airline, 'NA'))) %>%  fill(Airline, .direction = 'down')
+#long_df
+```
+
+Transform the value of Arrival_status into 2 new columns for analysis.
+
+```{r, echo=TRUE}
+airline_data <- long_df %>% spread(Arrival_Status, Flight_Count)
+
+# 2 New columns
+
+colnames(airline_data) [3] <- "Delayed"
+colnames(airline_data) [4] <- "On_Time"
+#airline_data
+```
+Perform analysis of delayed arrival for two airlines.
+
+```{r,echo=TRUE}
+summary_data <- airline_data %>%
+  group_by(Airline) %>%
+  summarise(Delayed_mean = mean(Delayed, na.rm = TRUE),
+            Delayed_median = median(Delayed, na.rm = TRUE),
+            Delayed_sd = sd(Delayed, na.rm = TRUE),
+            Delayed_min = min(Delayed, na.rm = TRUE),
+            Delayed_max = max(Delayed, na.rm = TRUE))
+summary_data
+```
+Total flight count grouping by Ariline
+
+```{r, echo=TRUE}
+# Group by Airline and summarise the Flight_Count column
+total_flight_counts <- long_df %>%
+  group_by(Airline) %>%
+  summarise(Total_Flight_Count = sum(Flight_Count, na.rm = TRUE))
+
+# Print the result
+print(total_flight_counts)
+```
+Conclusion 
+
+To conclude, on average, AM WEST has 157.4 delayed flights, which is approximately 57.14% more than ALASKA's average of 100.2 delayed flights. However, AM WEST operated 7325 flights in total, which is approximately 93.44% more than ALASKA's 3775 flights. It's important to note that these percentages are based on the data obtained and may vary depending on the time period or sample size. Therefore, it's essential to consider the reliability of the data sources when drawing conclusions.
+
